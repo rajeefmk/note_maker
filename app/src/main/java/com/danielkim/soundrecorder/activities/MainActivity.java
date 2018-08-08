@@ -1,37 +1,47 @@
 package com.danielkim.soundrecorder.activities;
 
 import android.content.Intent;
-import android.content.SharedPreferences;
 import android.os.Bundle;
-import android.preference.PreferenceManager;
 import android.support.v4.app.Fragment;
 import android.support.v4.app.FragmentManager;
-import android.support.v4.app.FragmentPagerAdapter;
+import android.support.v4.app.FragmentStatePagerAdapter;
 import android.support.v4.view.ViewPager;
 import android.support.v7.app.ActionBarActivity;
 import android.support.v7.widget.Toolbar;
+import android.util.Log;
 import android.view.Menu;
 import android.view.MenuItem;
 
 import com.astuetz.PagerSlidingTabStrip;
+import com.danielkim.soundrecorder.BusProvider;
 import com.danielkim.soundrecorder.R;
+import com.danielkim.soundrecorder.SoundRecorderApp;
+import com.danielkim.soundrecorder.events.DatabaseChangeEvent;
 import com.danielkim.soundrecorder.fragments.FileViewerFragment;
-import com.danielkim.soundrecorder.fragments.LicensesFragment;
 import com.danielkim.soundrecorder.fragments.RecordFragment;
 
+import org.greenrobot.eventbus.Subscribe;
 
-public class MainActivity extends ActionBarActivity{
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.Comparator;
+import java.util.List;
+
+
+public class MainActivity extends ActionBarActivity {
 
     private static final String LOG_TAG = MainActivity.class.getSimpleName();
 
     private PagerSlidingTabStrip tabs;
     private ViewPager pager;
+    private List<String> projectList;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
-
+        BusProvider.getInstance().register(this);
+        loadSpinnerData();
         pager = (ViewPager) findViewById(R.id.pager);
         pager.setAdapter(new MyAdapter(getSupportFragmentManager()));
         tabs = (PagerSlidingTabStrip) findViewById(R.id.tabs);
@@ -42,6 +52,29 @@ public class MainActivity extends ActionBarActivity{
         if (toolbar != null) {
             setSupportActionBar(toolbar);
         }
+    }
+
+    private void loadSpinnerData() {
+        projectList = SoundRecorderApp.get().getDbHelper().getAllItems();
+    }
+
+    @Override
+    protected void onDestroy() {
+        super.onDestroy();
+        BusProvider.getInstance().unregister(this);
+    }
+
+    @Subscribe
+    public void onDbChangeEvent(DatabaseChangeEvent databaseChangeEvent) {
+        switch (databaseChangeEvent.getCode()) {
+            case DatabaseChangeEvent.NEW_DB_ENTRY:
+                loadSpinnerData();
+                break;
+        }
+    }
+
+    public List<String> getProjectList() {
+        return projectList;
     }
 
     @Override
@@ -67,7 +100,7 @@ public class MainActivity extends ActionBarActivity{
         }
     }
 
-    public class MyAdapter extends FragmentPagerAdapter {
+    public class MyAdapter extends FragmentStatePagerAdapter {
         private String[] titles = { getString(R.string.tab_title_record),
                 getString(R.string.tab_title_saved_recordings) };
 
@@ -86,6 +119,11 @@ public class MainActivity extends ActionBarActivity{
                 }
             }
             return null;
+        }
+
+        @Override
+        public int getItemPosition(Object object) {
+            return POSITION_NONE;
         }
 
         @Override

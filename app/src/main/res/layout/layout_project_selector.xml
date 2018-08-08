@@ -1,0 +1,45 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:padding="@dimen/activity_horizontal_margin"
+    android:orientation="vertical">
+
+    <TextView
+        android:layout_width="fill_parent"
+        android:layout_height="wrap_content"
+        android:textColor="@android:color/black"
+        android:text="Select Project" />
+
+    <Spinner
+        android:id="@+id/spinner"
+        android:layout_width="fill_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginLeft="8dip"
+        android:layout_marginRight="8dip"
+        android:layout_marginTop="20dip" />
+
+    <TextView
+        android:layout_width="fill_parent"
+        android:layout_height="wrap_content"
+        android:textColor="@android:color/black"
+        android:layout_marginTop="20dip"
+        android:text="Or" />
+
+    <EditText
+        android:layout_width="match_parent"
+        android:id="@+id/add_new_project"
+        android:layout_marginTop="20dip"
+        android:hint="Add New Project"
+        android:layout_height="wrap_content" />
+
+    <Button
+        android:layout_width="wrap_content"
+        android:text="Start Recording"
+        android:id="@+id/start_recording"
+        android:layout_gravity="end|right"
+        android:padding="@dimen/activity_horizontal_margin"
+        android:background="@color/accent"
+        android:layout_marginTop="20dp"
+        android:layout_height="wrap_content" />
+</LinearLayout>

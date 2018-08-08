@@ -6,11 +6,9 @@ import android.app.PendingIntent;
 import android.app.Service;
 import android.content.Context;
 import android.content.Intent;
-import android.content.SharedPreferences;
 import android.media.MediaRecorder;
 import android.os.Environment;
 import android.os.IBinder;
-import android.preference.PreferenceManager;
 import android.support.v4.app.NotificationCompat;
 import android.util.Log;
 import android.widget.Toast;
@@ -30,13 +28,13 @@ import java.util.TimerTask;
 public class RecordingService extends Service {
 
     private static final String LOG_TAG = "RecordingService";
+    public static final String PROJECT_NAME_EXTRA = "project_name_extra";
 
     private String mFileName = null;
     private String mFilePath = null;
+    private String mProjectName = RecordingItem.DEFAULT_PROJECT_NAME;
 
     private MediaRecorder mRecorder = null;
-
-    private DBHelper mDatabase;
 
     private long mStartingTimeMillis = 0;
     private long mElapsedMillis = 0;
@@ -57,13 +55,9 @@ public class RecordingService extends Service {
     }
 
     @Override
-    public void onCreate() {
-        super.onCreate();
-        mDatabase = new DBHelper(getApplicationContext());
-    }
-
-    @Override
     public int onStartCommand(Intent intent, int flags, int startId) {
+        if(intent != null && intent.hasExtra(PROJECT_NAME_EXTRA))
+            mProjectName = intent.getStringExtra(PROJECT_NAME_EXTRA);
         startRecording();
         return START_STICKY;
     }
@@ -73,7 +67,6 @@ public class RecordingService extends Service {
         if (mRecorder != null) {
             stopRecording();
         }
-
         super.onDestroy();
     }
 
@@ -104,20 +97,20 @@ public class RecordingService extends Service {
         }
     }
 
-    public void setFileNameAndPath(){
+    public void setFileNameAndPath() {
         int count = 0;
         File f;
 
-        do{
+        do {
             count++;
 
             mFileName = getString(R.string.default_file_name)
-                    + "_" + (mDatabase.getCount() + count) + ".mp4";
+                    + "_" + (SoundRecorderApp.get().getDbHelper().getCount() + count) + ".mp4";
             mFilePath = Environment.getExternalStorageDirectory().getAbsolutePath();
             mFilePath += "/SoundRecorder/" + mFileName;
 
             f = new File(mFilePath);
-        }while (f.exists() && !f.isDirectory());
+        } while (f.exists() && !f.isDirectory());
     }
 
     public void stopRecording() {
@@ -135,9 +128,9 @@ public class RecordingService extends Service {
         mRecorder = null;
 
         try {
-            mDatabase.addRecording(mFileName, mFilePath, mElapsedMillis);
+            SoundRecorderApp.get().getDbHelper().addRecording(mFileName, mFilePath, mElapsedMillis, mProjectName);
 
-        } catch (Exception e){
+        } catch (Exception e) {
             Log.e(LOG_TAG, "exception", e);
         }
     }

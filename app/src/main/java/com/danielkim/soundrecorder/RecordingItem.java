@@ -7,11 +7,13 @@ import android.os.Parcelable;
  * Created by Daniel on 12/30/2014.
  */
 public class RecordingItem implements Parcelable {
+    public static final String DEFAULT_PROJECT_NAME = "General";
     private String mName; // file name
     private String mFilePath; //file path
     private int mId; //id in database
     private int mLength; // length of recording in seconds
     private long mTime; // date/time of the recording
+    private String projectName = DEFAULT_PROJECT_NAME;
 
     public RecordingItem()
     {
@@ -23,6 +25,7 @@ public class RecordingItem implements Parcelable {
         mId = in.readInt();
         mLength = in.readInt();
         mTime = in.readLong();
+        projectName = in.readString();
     }
 
     public String getFilePath() {
@@ -65,6 +68,14 @@ public class RecordingItem implements Parcelable {
         mTime = time;
     }
 
+    public String getProjectName() {
+        return projectName;
+    }
+
+    public void setProjectName(String projectName) {
+        this.projectName = projectName;
+    }
+
     public static final Parcelable.Creator<RecordingItem> CREATOR = new Parcelable.Creator<RecordingItem>() {
         public RecordingItem createFromParcel(Parcel in) {
             return new RecordingItem(in);
@@ -82,6 +93,7 @@ public class RecordingItem implements Parcelable {
         dest.writeLong(mTime);
         dest.writeString(mFilePath);
         dest.writeString(mName);
+        dest.writeString(projectName);
     }
 
     @Override

@@ -1,21 +1,30 @@
 package com.danielkim.soundrecorder.fragments;
 
+import android.app.Dialog;
 import android.content.Intent;
 import android.os.Bundle;
 import android.os.Environment;
 import android.os.SystemClock;
 import android.support.v4.app.Fragment;
+import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
+import android.view.Window;
 import android.view.WindowManager;
+import android.widget.AdapterView;
+import android.widget.ArrayAdapter;
 import android.widget.Button;
 import android.widget.Chronometer;
+import android.widget.EditText;
+import android.widget.Spinner;
 import android.widget.TextView;
 import android.widget.Toast;
 
 import com.danielkim.soundrecorder.R;
+import com.danielkim.soundrecorder.RecordingItem;
 import com.danielkim.soundrecorder.RecordingService;
+import com.danielkim.soundrecorder.activities.MainActivity;
 import com.melnykov.fab.FloatingActionButton;
 
 import java.io.File;
@@ -46,6 +55,7 @@ public class RecordFragment extends Fragment {
 
     private Chronometer mChronometer = null;
     long timeWhenPaused = 0; //stores time when user clicks pause button
+
 
     /**
      * Use this factory method to create a new instance of
@@ -104,6 +114,91 @@ public class RecordFragment extends Fragment {
         return recordView;
     }
 
+    private void showAlertDialog() {
+        final String[] selectedProjectName = {RecordingItem.DEFAULT_PROJECT_NAME};
+
+        final Dialog dialog = new Dialog(getActivity());
+        dialog.requestWindowFeature(Window.FEATURE_NO_TITLE);
+        dialog.setContentView(R.layout.layout_project_selector);
+
+        dialog.show();
+
+        Spinner spinner = (Spinner) dialog.findViewById(R.id.spinner);
+        final EditText editText = (EditText) dialog.findViewById(R.id.add_new_project);
+        Button button =(Button) dialog.findViewById(R.id.start_recording);
+
+
+        ArrayAdapter<String> dataAdapter = new ArrayAdapter<>(getActivity(),
+                android.R.layout.simple_spinner_item, ((MainActivity) getActivity()).getProjectList());
+        spinner.setAdapter(dataAdapter);
+        spinner.setOnItemSelectedListener(new AdapterView.OnItemSelectedListener() {
+            @Override
+            public void onItemSelected(AdapterView<?> parent, View view, int position, long id) {
+                Log.d("hl-log","Selected spinner item - " + parent.getItemAtPosition(position).toString());
+                selectedProjectName[0] = parent.getItemAtPosition(position).toString();
+            }
+
+            @Override
+            public void onNothingSelected(AdapterView<?> parent) {
+
+            }
+        });
+
+        button.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                String newProjectName = editText.getText().toString().trim();
+                if(!newProjectName.isEmpty()) {
+                    startRecording(newProjectName);
+                } else {
+                    startRecording(selectedProjectName[0]);
+                }
+                dialog.dismiss();
+            }
+        });
+    }
+
+    private void startRecording(String projectName) {
+        // start recording
+        Intent intent = new Intent(getActivity(), RecordingService.class);
+        intent.putExtra(RecordingService.PROJECT_NAME_EXTRA,projectName);
+        mRecordButton.setImageResource(R.drawable.ic_media_stop);
+        //mPauseButton.setVisibility(View.VISIBLE);
+        Toast.makeText(getActivity(),R.string.toast_recording_start,Toast.LENGTH_SHORT).show();
+        File folder = new File(Environment.getExternalStorageDirectory() + "/SoundRecorder");
+        if (!folder.exists()) {
+            //folder /SoundRecorder doesn't exist, create the folder
+            folder.mkdir();
+        }
+
+        //start Chronometer
+        mChronometer.setBase(SystemClock.elapsedRealtime());
+        mChronometer.start();
+        mChronometer.setOnChronometerTickListener(new Chronometer.OnChronometerTickListener() {
+            @Override
+            public void onChronometerTick(Chronometer chronometer) {
+                if (mRecordPromptCount == 0) {
+                    mRecordingPrompt.setText(getString(R.string.record_in_progress) + ".");
+                } else if (mRecordPromptCount == 1) {
+                    mRecordingPrompt.setText(getString(R.string.record_in_progress) + "..");
+                } else if (mRecordPromptCount == 2) {
+                    mRecordingPrompt.setText(getString(R.string.record_in_progress) + "...");
+                    mRecordPromptCount = -1;
+                }
+
+                mRecordPromptCount++;
+            }
+        });
+
+        //start RecordingService
+        getActivity().startService(intent);
+        //keep screen on while recording
+        getActivity().getWindow().addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON);
+
+        mRecordingPrompt.setText(getString(R.string.record_in_progress) + ".");
+        mRecordPromptCount++;
+    }
+
     // Recording Start/Stop
     //TODO: recording pause
     private void onRecord(boolean start){
@@ -111,42 +206,7 @@ public class RecordFragment extends Fragment {
         Intent intent = new Intent(getActivity(), RecordingService.class);
 
         if (start) {
-            // start recording
-            mRecordButton.setImageResource(R.drawable.ic_media_stop);
-            //mPauseButton.setVisibility(View.VISIBLE);
-            Toast.makeText(getActivity(),R.string.toast_recording_start,Toast.LENGTH_SHORT).show();
-            File folder = new File(Environment.getExternalStorageDirectory() + "/SoundRecorder");
-            if (!folder.exists()) {
-                //folder /SoundRecorder doesn't exist, create the folder
-                folder.mkdir();
-            }
-
-            //start Chronometer
-            mChronometer.setBase(SystemClock.elapsedRealtime());
-            mChronometer.start();
-            mChronometer.setOnChronometerTickListener(new Chronometer.OnChronometerTickListener() {
-                @Override
-                public void onChronometerTick(Chronometer chronometer) {
-                    if (mRecordPromptCount == 0) {
-                        mRecordingPrompt.setText(getString(R.string.record_in_progress) + ".");
-                    } else if (mRecordPromptCount == 1) {
-                        mRecordingPrompt.setText(getString(R.string.record_in_progress) + "..");
-                    } else if (mRecordPromptCount == 2) {
-                        mRecordingPrompt.setText(getString(R.string.record_in_progress) + "...");
-                        mRecordPromptCount = -1;
-                    }
-
-                    mRecordPromptCount++;
-                }
-            });
-
-            //start RecordingService
-            getActivity().startService(intent);
-            //keep screen on while recording
-            getActivity().getWindow().addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON);
-
-            mRecordingPrompt.setText(getString(R.string.record_in_progress) + ".");
-            mRecordPromptCount++;
+            showAlertDialog();
 
         } else {
             //stop recording
@@ -168,15 +228,15 @@ public class RecordFragment extends Fragment {
         if (pause) {
             //pause recording
             mPauseButton.setCompoundDrawablesWithIntrinsicBounds
-                    (R.drawable.ic_media_play ,0 ,0 ,0);
-            mRecordingPrompt.setText((String)getString(R.string.resume_recording_button).toUpperCase());
+                    (R.drawable.ic_media_play, 0, 0, 0);
+            mRecordingPrompt.setText((String) getString(R.string.resume_recording_button).toUpperCase());
             timeWhenPaused = mChronometer.getBase() - SystemClock.elapsedRealtime();
             mChronometer.stop();
         } else {
             //resume recording
             mPauseButton.setCompoundDrawablesWithIntrinsicBounds
-                    (R.drawable.ic_media_pause ,0 ,0 ,0);
-            mRecordingPrompt.setText((String)getString(R.string.pause_recording_button).toUpperCase());
+                    (R.drawable.ic_media_pause, 0, 0, 0);
+            mRecordingPrompt.setText((String) getString(R.string.pause_recording_button).toUpperCase());
             mChronometer.setBase(SystemClock.elapsedRealtime() + timeWhenPaused);
             mChronometer.start();
         }

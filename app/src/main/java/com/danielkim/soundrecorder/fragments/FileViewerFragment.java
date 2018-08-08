@@ -11,8 +11,12 @@ import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
 
+import com.danielkim.soundrecorder.BusProvider;
 import com.danielkim.soundrecorder.R;
 import com.danielkim.soundrecorder.adapters.FileViewerAdapter;
+import com.danielkim.soundrecorder.events.DatabaseChangeEvent;
+
+import org.greenrobot.eventbus.Subscribe;
 
 /**
  * Created by Daniel on 12/23/2014.
@@ -38,6 +42,23 @@ public class FileViewerFragment extends Fragment{
         super.onCreate(savedInstanceState);
         position = getArguments().getInt(ARG_POSITION);
         observer.startWatching();
+        BusProvider.getInstance().register(this);
+    }
+
+    @Override
+    public void onDestroy() {
+        super.onDestroy();
+        BusProvider.getInstance().unregister(this);
+    }
+
+    @Subscribe
+    public void onDbChangeEvent(DatabaseChangeEvent databaseChangeEvent) {
+        switch (databaseChangeEvent.getCode()) {
+            case DatabaseChangeEvent.NEW_DB_ENTRY:
+                //item added to top of the list
+                mFileViewerAdapter.onNewDbEntry();
+                break;
+        }
     }
 
     @Override
